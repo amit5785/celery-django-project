@@ -1,0 +1,45 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7.0.11-alpine 
+
+  dcelery:
+    container_name: django
+    build:
+      context: . # this will loadup and bootup everything in container 
+    command: python manage.py runserver 0.0.0.0:5785 #this is command that will run server in container
+    volumes:
+      - .:/app
+    ports:
+      - 8000:5785 # this will map the port 5785 inside container with my local machine port 8000
+    environment:
+      - DEBUG = 1
+      - SECRET_KEY =  AMITSINGH5785898573
+      - ALLOWED_HOSTS = localhost, 127.0.0.1, 192.168.1.7
+    depends_on:
+      - redis
+
+  # celery:
+  #   container_name: celery
+  #   build:
+  #     context: . # this will loadup and bootup everything in container 
+  #   command: celery --app=dcelery worker -l INFO
+  #   volumes:
+  #     - .:/app
+  #   environment:
+  #     - DEBUG = 1
+  #     - SECRET_KEY =  AMITSINGH5785898573
+  #     - ALLOWED_HOSTS = localhost, 127.0.0.1, 192.168.1.7
+  #   depends_on:
+  #     - redis
+
+  celery2:
+    build:
+      context: ../celeryworker # this will loadup and bootup everything in container 
+    command: celery -A celery worker -l INFO
+    volumes:
+      - ../celeryworker:/app
+    depends_on:
+      - redis
+      - dcelery
