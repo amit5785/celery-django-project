@@ -3,6 +3,11 @@ version: '3.8'
 services:
   redis:
     image: redis:7.0.11-alpine 
+    container_name: redis-server
+    networks:
+      - my_network
+    ports:
+      - 7320:6379   # Map host port 7320 to container port 6379
 
   dcelery:
     container_name: django
@@ -14,9 +19,9 @@ services:
     ports:
       - 8000:5785 # this will map the port 5785 inside container with my local machine port 8000
     environment:
-      - DEBUG = 1
-      - SECRET_KEY =  AMITSINGH5785898573
-      - ALLOWED_HOSTS = localhost, 127.0.0.1, 192.168.1.7
+      - DEBUG=1
+      - SECRET_KEY=AMITSINGH5785898573
+      - ALLOWED_HOSTS=localhost,127.0.0.1,192.168.1.7
     depends_on:
       - redis
 
@@ -28,18 +33,28 @@ services:
   #   volumes:
   #     - .:/app
   #   environment:
-  #     - DEBUG = 1
-  #     - SECRET_KEY =  AMITSINGH5785898573
-  #     - ALLOWED_HOSTS = localhost, 127.0.0.1, 192.168.1.7
+  #     - DEBUG=1
+  #     - SECRET_KEY=AMITSINGH5785898573
+  #     - ALLOWED_HOSTS=localhost,127.0.0.1,192.168.1.7
   #   depends_on:
   #     - redis
 
   celery2:
     build:
-      context: ../celeryworker # this will loadup and bootup everything in container 
-    command: celery -A celery worker -l INFO
+      context: ../ # this will loadup and bootup everything in container
+      dockerfile: ./celeryworker/Dockerfile 
+    command: celery -A celery_configs worker -l INFO
     volumes:
-      - ../celeryworker:/app
+      - ../celeryworker:/app/celeryworker
+    environment:
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    networks:
+      - my_network
     depends_on:
       - redis
       - dcelery
+
+networks:
+  my_network:
+    driver: bridge
